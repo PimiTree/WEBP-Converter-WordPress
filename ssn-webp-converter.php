@@ -8,7 +8,7 @@
  *
  * Plugin Name:         SNN WebP Converter
  * Plugin URI:          https://voron-porto.com
- * Description:         SNN WebP Converter - convert images to webp format from WP media library.
+ * Description:         SNN WebP Converter - convert images to webp format from WP media library. Support images jpg, jpeg, png
  * Version:             1.0
  * Requires at least:   6.5.1
  * Requires PHP:        8.1
