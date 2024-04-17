@@ -33,7 +33,8 @@
 if (!defined( 'ABSPATH' ) ) {
 	exit;
 }
-function resize_image_conditional_crop( $image, $new_width, $new_height ) {
+
+function resize_image_conditional_crop_with_alpha( $image, $new_width, $new_height ) {
 	$old_width  = imagesx( $image );
 	$old_height = imagesy( $image );
 
@@ -46,19 +47,21 @@ function resize_image_conditional_crop( $image, $new_width, $new_height ) {
 		$src_x      = round( ( $old_width - $src_width ) / 2 );
 		$src_y      = 0;
 	} else {
-
 		$src_width  = $old_width;
 		$src_height = round( $old_width * $new_height / $new_width );
 		$src_x      = 0;
 		$src_y      = round( ( $old_height - $src_height ) / 2 );
 	}
-
 	$resized_image = imagecreatetruecolor( $new_width, $new_height );
+	imagesavealpha( $resized_image, true );
+	$transparent = imagecolorallocatealpha( $resized_image, 0, 0, 0, 127 );
+	imagefill( $resized_image, 0, 0, $transparent );
 
 	imagecopyresampled( $resized_image, $image, 0, 0, $src_x, $src_y, $new_width, $new_height, $src_width, $src_height );
 
 	return $resized_image;
 }
+
 function convert_img_to_webp( $path, $metadata, $isFullSize = false, $isOriginal = false, $quality = 75 ) {
 	$path_parts  = pathinfo( $path );
 	$meta_parts  = pathinfo( $metadata['file'] );
@@ -90,7 +93,7 @@ function convert_img_to_webp( $path, $metadata, $isFullSize = false, $isOriginal
 		imagesavealpha( $image, true );
 	}
 	if ( ! $isFullSize && ! $isOriginal ) {
-		$image = resize_image_conditional_crop( $image, $metadata['width'], $metadata['height'] );
+		$image = resize_image_conditional_crop_with_alpha( $image, $metadata['width'], $metadata['height'] );
 	}
 
 	imagewebp( $image, $destination, $quality );

@@ -2,7 +2,7 @@
 
 ### SNN WebP Converter - convert images to webp format from WP media library.
 #### Support images jpg, jpeg, png
-#### Tested on 
+
 
 # Comptability test table
 |           | PHP 8.3    | PHP 8.2     | PHP 8.1.9   |
