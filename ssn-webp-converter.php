@@ -10,7 +10,7 @@
  * Plugin URI:          https://voron-porto.com
  * Description:         SNN WebP Converter - convert images to webp format from WP media library. Support images jpg, jpeg, png
  * Version:             1.0
- * Requires at least:   6.5.1
+ * Requires at least:   5.3
  * Requires PHP:        8.1
  * Author:              SSN Team
  * Author URI:          https://voron-porto.com
@@ -65,14 +65,23 @@ function resize_image_conditional_crop_with_alpha( $image, $new_width, $new_heig
 function convert_img_to_webp( $path, $metadata, $isFullSize = false, $isOriginal = false, $quality = 75 ) {
 	$path_parts  = pathinfo( $path );
 	$meta_parts  = pathinfo( $metadata['file'] );
-	$destination = $path_parts['dirname'] . '/' . $meta_parts['filename'] . ".webp";
+	$destination = $path_parts['dirname'] . '/' . $meta_parts['filename'];
+	$new_destination = $destination;
 
+	if (file_exists($destination . ".webp"))  {
+		while (file_exists($new_destination . ".webp")) {
+			$new_destination = $destination . '-' . rand(0, 999);
+		}
+		$destination = $new_destination;
+	}
+	$destination .= ".webp";
+	$destination_part = pathinfo($destination);
 
-	$metadata['file']      = $metadata['file'] . ".webp";
+	$metadata['file']      = $meta_parts['dirname'] . "/" . $destination_part['filename'] . ".webp";
 	$metadata['mime-type'] = 'image/webp';
 
 	if ( ! $isFullSize && ! $isOriginal ) {
-		$metadata['file'] = $meta_parts['filename'] . ".webp";
+		$metadata['file'] = $destination_part['filename'] . ".webp";
 	}
 
 	$info    = getimagesize( $path );
@@ -80,9 +89,7 @@ function convert_img_to_webp( $path, $metadata, $isFullSize = false, $isOriginal
 
 	if ( $info['mime'] == 'image/jpeg' ) {
 		$image = imagecreatefromjpeg( $path );
-	} elseif ( $isAlpha = $info['mime'] == 'image/gif' ) {
-		$image = imagecreatefromgif( $path );
-	} elseif ( $isAlpha = $info['mime'] == 'image/png' ) {
+	}  elseif ( $isAlpha = $info['mime'] == 'image/png' ) {
 		$image = imagecreatefrompng( $path );
 	} else {
 		return $path;
@@ -99,7 +106,6 @@ function convert_img_to_webp( $path, $metadata, $isFullSize = false, $isOriginal
 	imagewebp( $image, $destination, $quality );
 	$source_file = $path_parts['dirname'] . '/' . $meta_parts['basename'];
 
-
 	$metadata['filesize'] = filesize( $destination );
 
 	return [ 'meta' => $metadata, 'source_file' => $source_file ];
@@ -112,12 +118,11 @@ function convert_to_webp( $metadata, $attachment_id ) {
 	if ( in_array( $file_type['ext'], [ 'png', 'gif', 'jpeg', 'jpg' ] ) ) {
 		$path_parts = pathinfo( $file );
 		$meta_parts = pathinfo( $metadata['file'] );
+
 		$data                = convert_img_to_webp( $file, $metadata, true );
 		$source_path_array[] = $data['source_file'];
 		$metadata['filesize'] = filesize( $path_parts['dirname'] . '/' . $path_parts['filename'] . '.webp' );
-		$metadata['file']     = $meta_parts['dirname'] . '/' . $path_parts['filename'] . '.webp';
-
-
+		$metadata['file']     = $data['meta']['file'];
 
 		foreach ( $metadata['sizes'] as $key => $size ) {
 			$data                      = convert_img_to_webp( $file, $metadata['sizes'][ $key ] );
@@ -129,17 +134,16 @@ function convert_to_webp( $metadata, $attachment_id ) {
 			$original_image_data        = [
 				"file" => $metadata["original_image"]
 			];
-			$meta_original_parts        = pathinfo( $original_image_data['file'] );
-			$metadata["original_image"] = $meta_original_parts['filename'] . '.webp';
 			$data                       = convert_img_to_webp( $file, $original_image_data, false, true );
+			$metadata["original_image"] = $data['meta']['file'];
 			$source_path_array[]        = $data['source_file'];
 		}
-		$new_path = $path_parts['dirname'] . "/" . $path_parts['filename'] . '.webp';
+//		$new_path = $path_parts['dirname'] . "/" . $path_parts['filename'] . '.webp';
 
-		update_attached_file( $attachment_id, $new_path );
+		update_attached_file( $attachment_id, $metadata['file']);
 		wp_update_post( [
 			'ID'             => $attachment_id,
-			'guid'           => $new_path,
+			'guid'           =>  pathinfo($metadata['file'], PATHINFO_BASENAME),
 			'post_mime_type' => 'image/webp'
 		] );
 
@@ -149,16 +153,16 @@ function convert_to_webp( $metadata, $attachment_id ) {
 		global $wpdb;
 		$wpdb->update(
 			$wpdb->posts,
-			array( 'guid' => $guid_parts['dirname'] . '/' . $guid_parts['filename'] . '.webp' ),
+			array( 'guid' => $guid_parts['dirname'] . '/' . pathinfo($metadata['file'], PATHINFO_BASENAME) ),
 			array( 'ID' => $attachment_id )
 		);
 
-//		file_put_contents( WP_PLUGIN_DIR . '/ssn-webp-converter/voron-debug.json', json_encode($source_path_array ), );
+
 		foreach ( $source_path_array as $path ) {
 			unlink( $path );
 		}
 	}
-
+	file_put_contents( WP_PLUGIN_DIR . '/ssn-webp-converter/voron-debug.json', json_encode($metadata));
 	return $metadata;
 }
 
