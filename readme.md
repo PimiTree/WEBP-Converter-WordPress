@@ -1,7 +1,11 @@
-# SSN Webp Converter
+# WordPress Webp Converter
 
-### SNN WebP Converter - convert images to webp format from WP media library.
+### WebP Converter - convert images to webp format from WP media library.
 #### Support images jpg, jpeg, png
+
+#### What the benefiss? 
+This pluging intercept images at upload process of media page and converts onflight them to `.webp`. Plugin make changes in WordPress database to let it use right images. 
+
 
 
 # Comptability test table
